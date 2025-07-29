@@ -39,9 +39,9 @@ def download_images_from_urls(urls):
 def main():
     # Example image URLs - replace with your desired URLs
     image_urls = [
-        "https://upload.wikimedia.org/wikipedia/commons/6/66/Painting_of_Mughal_emperor_Akbar_meeting_Guru_Amar_Das_in_1567_at_Goindwal.jpg"
-        #"https://upload.wikimedia.org/wikipedia/commons/e/e8/The_Joker_at_Wax_Museum_Plus.jpg", # Joker image
-        #"https://upload.wikimedia.org/wikipedia/en/9/98/Joker_%28DC_Comics_character%29.jpg"
+        "https://upload.wikimedia.org/wikipedia/commons/e/e8/The_Joker_at_Wax_Museum_Plus.jpg", # Joker image
+        #"https://upload.wikimedia.org/wikipedia/commons/6/66/Painting_of_Mughal_emperor_Akbar_meeting_Guru_Amar_Das_in_1567_at_Goindwal.jpg"
+        "https://upload.wikimedia.org/wikipedia/en/9/98/Joker_%28DC_Comics_character%29.jpg"
     ]
     
     print("Starting image analysis with Ollama LLaVA and smolagents...")
@@ -72,14 +72,14 @@ def main():
         tools=[],  # No additional tools needed for this task
         model=model,
         planning_interval=1,  # Adjust planning interval as needed
-        verbosity_level=2,  # Set verbosity level for debugging
+        verbosity_level=1,  # Set verbosity level for debugging
         max_steps=1  # Limit the number of steps to prevent infinite loops
     )
     
     # Step 4: Analyze each image using agent.run() approach
     print("\n4. Analyzing images with agent.run()...")
     
-    # Primary approach: Use agent.run() with PIL images directly
+    
     try:
         print("Using agent.run() with PIL images...")
         

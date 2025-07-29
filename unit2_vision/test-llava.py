@@ -39,8 +39,8 @@ try:
   import litellm
 
   image_urls = [
-        "https://upload.wikimedia.org/wikipedia/commons/6/66/Painting_of_Mughal_emperor_Akbar_meeting_Guru_Amar_Das_in_1567_at_Goindwal.jpg"
-        #"https://upload.wikimedia.org/wikipedia/commons/e/e8/The_Joker_at_Wax_Museum_Plus.jpg", # Joker image
+        "https://upload.wikimedia.org/wikipedia/commons/6/66/Painting_of_Mughal_emperor_Akbar_meeting_Guru_Amar_Das_in_1567_at_Goindwal.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/e/e8/The_Joker_at_Wax_Museum_Plus.jpg", # Joker image
         #"https://upload.wikimedia.org/wikipedia/en/9/98/Joker_%28DC_Comics_character%29.jpg"
     ]
     
