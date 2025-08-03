@@ -6,7 +6,7 @@ load_dotenv()
 
 
 llm = Ollama(
-    model="qwen3:8b",
+    model="qwen3:latest",
     temperature=0.7,
     max_tokens=100,
     request_timeout=120,
