@@ -13,7 +13,7 @@ DATA_DIR = "yolo8_icon_detector/data"
 MODEL_PATH = "yolo8_icon_detector/component_classifier.pth"
 BATCH_SIZE = 8
 NUM_EPOCHS = 50
-IMAGE_SIZE = 128
+IMAGE_SIZE = 224
 
 # Define transforms
 train_transform = transforms.Compose([
@@ -53,7 +53,19 @@ with open("yolo8_icon_detector/component_labels.txt", "w") as f:
 model = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
 for param in model.parameters():
     param.requires_grad = False  # freeze backbone
-model.fc = nn.Linear(model.fc.in_features, len(class_names))
+
+#Unfreeze last layer for more layers to train
+for param in model.layer4.parameters():
+    param.requires_grad = True
+
+# Modify the final layer with dropout
+for param in model.fc.parameters():
+    param.requires_grad = True
+
+model.fc = nn.Sequential(
+    nn.Dropout(p=0.3),
+    nn.Linear(model.fc.in_features, len(class_names))
+)
 model = model.to(device)
 
 # Loss & Optimizer
@@ -63,6 +75,11 @@ optimizer = optim.Adam(model.parameters(), lr=0.001)
 # Debug: Check if data is loaded correctly
 dataset = ImageFolder("yolo8_icon_detector/data")
 print(dataset.class_to_idx)
+
+# Early stopping parameters
+patience = 5
+best_val_loss = float('inf')
+epochs_no_improve = 0
 
 # Training loop
 print("Training classifier...")
@@ -103,6 +120,15 @@ for epoch in range(NUM_EPOCHS):
 
     print(f"Epoch {epoch+1}/{NUM_EPOCHS} - Train Loss: {train_loss:.4f}, Train Accuracy: {train_accuracy:.2f}, Val Loss: {val_loss:.4f}, Val Accuracy: {val_accuracy:.2f}")
 
-# Save model
-torch.save(model.state_dict(), MODEL_PATH)
+    # Early stopping check
+    if val_loss < best_val_loss:
+        best_val_loss = val_loss
+        epochs_no_improve = 0
+        torch.save(model.state_dict(), MODEL_PATH)
+    else:
+        epochs_no_improve += 1
+        if epochs_no_improve >= patience:
+            print(f"Early stopping triggered after {epoch+1} epochs.")
+            break
+
 print(f"\n✅ Model saved to {MODEL_PATH}")

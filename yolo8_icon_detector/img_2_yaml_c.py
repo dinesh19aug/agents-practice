@@ -9,15 +9,18 @@ import torchvision.transforms as transforms
 from PIL import Image
 #from torchvision.models import resnet18
 from torchvision import models
-
+import os
 
 class InfrastructureDetector:
     def __init__(self):
         # Load classifier model
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        #self.classifier = models.resnet18(weights=None)
+        #self.classifier = models.resnet18(weights=None)    
         self.classifier = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
-        self.classifier.fc = nn.Linear(self.classifier.fc.in_features, 5)  # Adjust number of classes if needed
+        #self.classifier.fc = nn.Linear(self.classifier.fc.in_features, 5)  # Adjust number of classes if needed
+        self.classifier.fc = nn.Sequential(
+            nn.Dropout(p=0.3),
+            nn.Linear(self.classifier.fc.in_features, 5))
         self.classifier.load_state_dict(torch.load("yolo8_icon_detector/component_classifier.pth", map_location=self.device))
         self.classifier.to(self.device)
         self.classifier.eval()
@@ -26,7 +29,7 @@ class InfrastructureDetector:
             self.class_labels = [line.strip() for line in f]
 
         self.img_transform = transforms.Compose([
-            transforms.Resize((128, 128)),
+            transforms.Resize((224, 224)),
             transforms.ToTensor(),
             transforms.Normalize([0.5] * 3, [0.5] * 3)
         ])
@@ -98,7 +101,11 @@ class InfrastructureDetector:
 
             x, y, w, h = features['bbox']
             img_crop = self.original_img[y:y+h, x:x+w]
+            debug_dir = "yolo8_icon_detector/debug_crops"
+            os.makedirs(debug_dir, exist_ok=True)
+            cv2.imwrite(os.path.join(debug_dir, f"crop_{x}_{y}_{w}x{h}.jpg"), img_crop)
             comp_type, confidence = self.classify_icon_with_model(img_crop)
+            print(f"[DEBUG] Detected contour at ({x},{y}) size=({w}x{h}) -> classified as '{comp_type}' with confidence {confidence:.2f}")
 
             if confidence >= 0.6:
                 detections.append({
@@ -124,7 +131,7 @@ class InfrastructureDetector:
         return data
 
 
-def main(image_path="yolo8_icon_detector/img_yaml_2.png"):
+def main(image_path="yolo8_icon_detector/img_yaml_3.png"):
     detector = InfrastructureDetector()
     try:
         annotated_img, detections = detector.detect_components(image_path)
