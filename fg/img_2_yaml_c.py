@@ -124,25 +124,37 @@ class InfrastructureDetector:
         return best_match if max_pixels > 10 else None
 
     def extract_shape_features(self, contour):
-        """Extract shape features from contour"""
         area = cv2.contourArea(contour)
         x, y, w, h = cv2.boundingRect(contour)
 
-        # Basic measurements
         relative_area = area / self.img_area
         aspect_ratio = w / float(h) if h > 0 else 0
 
-        # Shape analysis
         hull = cv2.convexHull(contour)
         hull_area = cv2.contourArea(hull)
         solidity = area / hull_area if hull_area > 0 else 0
 
-        # How well the contour fills its bounding rectangle
         extent = area / (w * h) if (w * h) > 0 else 0
-
-        # Perimeter-based circularity
         perimeter = cv2.arcLength(contour, True)
         circularity = 4 * math.pi * area / (perimeter * perimeter) if perimeter > 0 else 0
+
+        # Ellipse detection
+        ellipse_detected = False
+        ellipse_params = None
+        ellipse_aspect_ratio = 0
+
+        if len(contour) >= 5:
+            try:
+                ellipse = cv2.fitEllipse(contour)
+                (center, axes, angle) = ellipse
+                major, minor = max(axes), min(axes)
+                ellipse_aspect_ratio = major / minor if minor > 0 else 0
+
+                if 1.1 < ellipse_aspect_ratio < 3.5:
+                    ellipse_detected = True
+                    ellipse_params = ellipse
+            except:
+                pass
 
         return {
             'area': area,
@@ -154,7 +166,10 @@ class InfrastructureDetector:
             'bbox': (x, y, w, h),
             'perimeter': perimeter,
             'width': w,
-            'height': h
+            'height': h,
+            'ellipse_detected': ellipse_detected,
+            'ellipse_params': ellipse_params,
+            'ellipse_aspect_ratio': ellipse_aspect_ratio
         }
 
     def classify_component(self, features, color_name):
@@ -199,7 +214,10 @@ class InfrastructureDetector:
             elif rules['shape_type'] == 'cylinder':
                 # Prefer elongated shapes (databases)
                 if features['aspect_ratio'] > 1.2 and features['solidity'] > 0.75:
-                    score += 1.0
+                    score += 0.5
+                    criteria_met += 1
+                if features.get('ellipse_detected'):
+                    score += 1
                     criteria_met += 1
             elif rules['shape_type'] == 'storage':
                 # NAS can be square or slightly rectangular

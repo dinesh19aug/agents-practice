@@ -1,0 +1,5 @@
+browser
+database
+load_balancer
+nas
+server

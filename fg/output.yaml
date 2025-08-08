@@ -1,0 +1,12 @@
+components:
+  agents:
+    count: 0
+  browser: 0
+  database:
+    count: 0
+    type: Database
+  load_balancer: 0
+  nas:
+    count: 2
+    type: NAS Storage
+  servers: 4
