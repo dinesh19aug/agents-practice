@@ -46,12 +46,54 @@ class InfrastructureDetector:
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         return img, hsv
 
+    """
     def create_combined_mask(self, hsv):
         gray = cv2.cvtColor(self.original_img, cv2.COLOR_BGR2GRAY)
         _, thresh = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV)
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
         mask = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
         return mask
+    """
+    def create_combined_mask(self, hsv):
+        gray = cv2.cvtColor(self.original_img, cv2.COLOR_BGR2GRAY)
+        _, thresh = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV)
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        mask = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+
+        # --- Work on a COPY for arrow detection ---
+        arrow_detect_img = mask.copy()
+
+        # Try to detect straight lines
+        edges = cv2.Canny(arrow_detect_img, 50, 150)
+        lines = cv2.HoughLinesP(edges, 1, np.pi/180, threshold=50,
+                            minLineLength=30, maxLineGap=5)
+        arrows_mask = np.zeros_like(mask)
+        if lines is not None:
+            for line in lines:
+                x1, y1, x2, y2 = line[0]
+                cv2.line(arrows_mask, (x1, y1), (x2, y2), 255, 3)
+
+        # Detect thin curved lines via skeletonization
+        try:
+            skeleton = cv2.ximgproc.thinning(arrow_detect_img)
+        except AttributeError:
+            skeleton = arrow_detect_img.copy()
+
+        contours, _ = cv2.findContours(skeleton, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        for cnt in contours:
+            length = cv2.arcLength(cnt, False)
+            area = cv2.contourArea(cnt)
+            avg_width = area / (length + 1e-5)
+
+            if avg_width < 5 and length > 30:
+                cv2.drawContours(arrows_mask, [cnt], -1, 255, -1)
+
+        # Subtract arrows from ORIGINAL mask
+        mask_no_arrows = cv2.bitwise_and(mask, cv2.bitwise_not(arrows_mask))
+        vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 15))
+        mask_no_arrows = cv2.morphologyEx(mask_no_arrows, cv2.MORPH_CLOSE, vertical_kernel)
+
+        return mask_no_arrows
 
     def extract_shape_features(self, contour):
         area = cv2.contourArea(contour)
@@ -131,7 +173,7 @@ class InfrastructureDetector:
         return data
 
 
-def main(image_path="yolo8_icon_detector/img_yaml_3.png"):
+def main(image_path="yolo8_icon_detector/img_yaml_8.png"):
     detector = InfrastructureDetector()
     try:
         annotated_img, detections = detector.detect_components(image_path)

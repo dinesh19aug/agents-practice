@@ -6,8 +6,15 @@ from torch.utils.data import DataLoader, random_split
 from sklearn.metrics import classification_report
 from torchvision.datasets import ImageFolder
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# ---- Device selection ----
+if torch.backends.mps.is_available():       # Apple Silicon / macOS GPU
+    device = torch.device("mps")
+elif torch.cuda.is_available():              # NVIDIA GPU
+    device = torch.device("cuda")
+else:
+    device = torch.device("cpu")
 
+print(f"✅ Using device: {device}")
 # Parameters
 DATA_DIR = "yolo8_icon_detector/data"
 MODEL_PATH = "yolo8_icon_detector/component_classifier.pth"
